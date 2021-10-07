@@ -1,0 +1,68 @@
+version: '3'
+
+services:
+
+  database:
+    image: postgres:latest
+    container_name: interview-db
+    environment:
+      - POSTGRES_DB=interview
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=root
+
+    ports:
+      - 5432:5432
+    networks:
+      - interview-network
+
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+
+
+  backend:
+    image: interview-backend
+    container_name: interview-backend
+    build:
+      context: hr-job-interview-backend/.
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://database/interview
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.PostgreSQLDialect
+      SPRING_JPA_SHOW_SQL: 'true'
+
+    ports:
+      - 8081:8081
+    networks:
+      - interview-network
+    depends_on:
+      - database
+
+
+  frontend:
+    image: interview-frontend
+    container_name: interview-frontend
+    build:
+      context: hr-job-interview-frontend/.
+    ports:
+      - 8080:8080
+    environment:
+      BACKEND_HOST: backend
+    networks:
+      - interview-network
+    depends_on:
+      - database
+      - backend
+
+
+networks:
+  interview-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.10.10.1/24
+
+volumes:
+  data:
